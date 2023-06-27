@@ -1,0 +1,4 @@
+[debug] [inde-test] Classpath dependencies List()
+[debug] [inde-test] Dependencies from configurations List(inde)
+[debug] Bloop wrote the configuration of project 'inde-test' to '/Users/amine/Desktop/EPITA/inde/.bloop/inde-test.json'
+[success] Generated .bloop/inde-test.json
