@@ -16,23 +16,18 @@ object RiotDetector {
     val producerProps = createProducerProperties()
     val producer = new KafkaProducer[String, String](producerProps)
 
-    while (true) {
-      val records = consumer.poll(java.time.Duration.ofMillis(100)).asScala
-      processRecords(records, producer)
-    }
+    consumeRecords(consumer, producer)
   }
 
   def createConsumerProperties(): Properties = {
-  val props = new Properties()
-  props.put("bootstrap.servers", "localhost:9092")
-  props.put("group.id", "alertGroup")
-  props.put("enable.auto.commit", "true")
-  props.put("auto.commit.interval.ms", "1000")
-  props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
-  props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
-  props
-}
-
+    val props = new Properties()
+    props.put("bootstrap.servers", "localhost:9092")
+    props.put("group.id", "alertGroup")
+    props.put("enable.auto.commit", "false") // Disable auto-commit
+    props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+    props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer")
+    props
+  }
 
   def createProducerProperties(): Properties = {
     val props = new Properties()
@@ -42,21 +37,31 @@ object RiotDetector {
     props
   }
 
-  def processRecords(records: Iterable[ConsumerRecord[String, String]], producer: KafkaProducer[String, String]): Unit = {
-  records.foreach { record =>
-    val data = Json.parse(record.value())
-    val drone = (data \ "drone").as[Drone]
-    val citizens = (data \ "citizens").asOpt[Seq[Citizen]].getOrElse(Seq.empty[Citizen])
+  def consumeRecords(consumer: KafkaConsumer[String, String], producer: KafkaProducer[String, String]): Unit = {
+    val records = consumer.poll(java.time.Duration.ofMillis(100)).asScala
+    processRecords(records, producer)
 
-    citizens.foreach { citizen =>
-      if (citizen.harmonyScore < 0) {
-        val alert = s"Riot detected at location ${drone.location} by drone ${drone.id}. Citizen ${citizen.name} has a harmony score of ${citizen.harmonyScore}."
-        println(alert)
-        val alertRecord = new ProducerRecord[String, String]("riotAlerts", "alert", alert)
-        producer.send(alertRecord)
+    // Commit offsets manually
+    consumer.commitSync()
+
+    // Recursive call
+    consumeRecords(consumer, producer)
+  }
+
+  def processRecords(records: Iterable[ConsumerRecord[String, String]], producer: KafkaProducer[String, String]): Unit = {
+    records.foreach { record =>
+      val data = Json.parse(record.value())
+      val drone = (data \ "drone").as[Drone]
+      val citizens = (data \ "citizens").asOpt[Seq[Citizen]].getOrElse(Seq.empty[Citizen])
+
+      citizens.foreach { citizen =>
+        if (citizen.harmonyScore < 0) {
+          val alert = s"Riot detected at location ${drone.location} by drone ${drone.id}. Citizen ${citizen.name} has a harmony score of ${citizen.harmonyScore}."
+          println(alert)
+          val alertRecord = new ProducerRecord[String, String]("riotAlerts", "alert", alert)
+          producer.send(alertRecord)
+        }
       }
     }
   }
-}
-
 }
