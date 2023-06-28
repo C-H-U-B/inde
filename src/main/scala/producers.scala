@@ -23,7 +23,7 @@ object DroneSimulator {
 
     // Place citizens in Harmonyland
     for (_ <- 1 to 1000) {
-      val words = List.fill(10)(if (Random.nextBoolean()) positiveWords else negativeWords).map(_.toList(Random.nextInt(10)))
+      val words = List.fill(3)(if (Random.nextBoolean()) positiveWords else negativeWords).map(_.toList(Random.nextInt(10)))
       val harmonyScore = words.map(word => if (positiveWords.contains(word)) 10 else -10).sum
       val citizen = Citizen(s"Citizen${Random.nextInt(1000)}", harmonyScore, words)
       val location = (Random.nextInt(100), Random.nextInt(100))
