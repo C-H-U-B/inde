@@ -30,17 +30,21 @@ object DroneReportConsumer {
   }
 
   def processRecords(records: Iterable[ConsumerRecord[String, String]]): Unit = {
-    records.foreach { record =>
-      val data = Json.parse(record.value())
-      val drone = (data \ "drone").as[Drone]
-      val citizenOpt = (data \ "citizen").asOpt[Citizen]
-      citizenOpt match {
-        case Some(citizen) =>
-          println(s"Drone ID: ${drone.id}, Location: ${drone.location}, Citizen: ${citizen.name}, Harmony Score: ${citizen.harmonyScore}, Words: ${citizen.words.mkString(", ")}")
-        case None =>
-          println(s"Drone ID: ${drone.id}, Location: ${drone.location}, No citizen detected.")
+  records.foreach { record =>
+    val data = Json.parse(record.value())
+    val drone = (data \ "drone").as[Drone]
+    val citizens = (data \ "citizens").asOpt[Seq[Citizen]].getOrElse(Seq.empty[Citizen])
+
+    if (citizens.nonEmpty) {
+      citizens.foreach { citizen =>
+        println(s"Drone ID: ${drone.id}, Location: ${drone.location}, Citizen: ${citizen.name}, Harmony Score: ${citizen.harmonyScore}, Words: ${citizen.words.mkString(", ")}")
       }
+    } else {
+      println(s"Drone ID: ${drone.id}, Location: ${drone.location}, No citizen detected.")
     }
   }
+}
+
+
 }
 

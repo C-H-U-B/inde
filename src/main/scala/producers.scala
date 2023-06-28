@@ -23,7 +23,7 @@ object DroneSimulator {
 
     // Place citizens in Harmonyland
     for (_ <- 1 to 1000) {
-      val words = List.fill(3)(if (Random.nextBoolean()) positiveWords else negativeWords).map(_.toList(Random.nextInt(10)))
+      val words = List.fill(10)(if (Random.nextBoolean()) positiveWords else negativeWords).map(_.toList(Random.nextInt(10)))
       val harmonyScore = words.map(word => if (positiveWords.contains(word)) 10 else -10).sum
       val citizen = Citizen(s"Citizen${Random.nextInt(1000)}", harmonyScore, words)
       val location = (Random.nextInt(100), Random.nextInt(100))
@@ -56,24 +56,38 @@ object DroneSimulator {
     drone.location = (drone.location._1 + Random.nextInt(3) - 1, drone.location._2 + Random.nextInt(3) - 1)
   }
 
-  def generateDroneData(drone: Drone, harmonyland: Array[Array[Option[Citizen]]]): String = {
-    val citizen = harmonyland(drone.location._1)(drone.location._2)
-    val data = citizen match {
-      case Some(citizen) =>
-        Json.obj(
-          "drone" -> Json.toJson(drone),
-          "citizen" -> Json.toJson(citizen)
-        )
-      case None =>
-        Json.obj(
-          "drone" -> Json.toJson(drone)
-        )
-    }
-    Json.stringify(data)
+ def generateDroneData(drone: Drone, harmonyland: Array[Array[Option[Citizen]]]): String = {
+  def scanZone(x: Int, y: Int, dx: Int, dy: Int, citizens: List[Citizen]): List[Citizen] = {
+    if (dx > 5) citizens
+    else if (dy > 5) scanZone(x, y, dx + 1, -5, citizens)
+    else if (x + dx >= 0 && x + dx < 100 && y + dy >= 0 && y + dy < 100) {
+      harmonyland(x + dx)(y + dy) match {
+        case Some(citizen) => scanZone(x, y, dx, dy + 1, citizen :: citizens)
+        case None => scanZone(x, y, dx, dy + 1, citizens)
+      }
+    } else scanZone(x, y, dx, dy + 1, citizens)
   }
+
+  val citizens = scanZone(drone.location._1, drone.location._2, -5, -5, Nil)
+
+  val data = citizens match {
+    case Nil =>
+      Json.obj(
+        "drone" -> Json.toJson(drone)
+      )
+    case _ =>
+      Json.obj(
+        "drone" -> Json.toJson(drone),
+        "citizens" -> citizens.map(Json.toJson(_))
+      )
+  }
+  Json.stringify(data)
+}
+
 
   def sendRecord(producer: KafkaProducer[String, String], droneData: String): Unit = {
     val record = new ProducerRecord[String, String]("droneData", "key", droneData)
     producer.send(record)
   }
 }
+
