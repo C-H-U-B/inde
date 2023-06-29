@@ -1,0 +1,5 @@
+[0m[[0m[31merror[0m] [0m[0m/mnt/c/Users/paulc/OneDrive/Documents/epita/scia/inde/ProjectAnalyse/src/main/scala/analyse.scala:17:25: value UE_WEST_1 is not a member of object software.amazon.awssdk.regions.Region[0m
+[0m[[0m[31merror[0m] [0m[0mdid you mean EU_WEST_1, US_WEST_1, or US_WEST_2?[0m
+[0m[[0m[31merror[0m] [0m[0m    val region = Region.UE_WEST_1[0m
+[0m[[0m[31merror[0m] [0m[0m                        ^[0m
+[0m[[0m[31merror[0m] [0m[0mone error found[0m
